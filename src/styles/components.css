@@ -783,3 +783,86 @@
   margin: 4px 0;
 }
 
+/* Responsive Mobile & Tablet Rules */
+@media (max-width: 768px) {
+  .header-inner {
+    padding: 10px 14px;
+    gap: 12px;
+  }
+  
+  .brand-title {
+    font-size: 1.15rem;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+  
+  .nav-tabs {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px;
+  }
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .nav-tab-btn {
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  .telemetry-bar {
+    padding: 6px 12px;
+  }
+  
+  .telemetry-inner {
+    font-size: 0.7rem;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .main-content {
+    padding: 14px 10px;
+  }
+  
+  .canvas-container {
+    min-height: 260px;
+  }
+  
+  .canvas-toolbar {
+    bottom: 8px;
+    padding: 4px 10px;
+    transform: translateX(-50%) scale(0.92);
+  }
+  
+  .voice-copilot-bar {
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .voice-status-block {
+    width: 100%;
+  }
+
+  .chassis-svg-card {
+    min-height: 420px;
+    padding: 12px;
+  }
+  
+  .kpi-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-sheet {
+    max-height: 95vh;
+  }
+}
+
+
