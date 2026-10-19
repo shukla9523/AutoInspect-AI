@@ -6,6 +6,7 @@ import RepairCostEstimator from './components/RepairCostEstimator';
 import FleetAuditHistory from './components/FleetAuditHistory';
 import CustomScanUploader from './components/CustomScanUploader';
 import ReportModal from './components/ReportModal';
+import CameraScannerModal from './components/CameraScannerModal';
 import { VEHICLES_DATA } from './data/mockVehicles';
 import { soundEffects } from './utils/audio';
 
@@ -15,6 +16,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('scanner');
   const [isMuted, setIsMuted] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const activeVehicle = vehicles.find(v => v.id === activeVehicleId) || vehicles[0];
 
@@ -42,6 +44,7 @@ export default function App() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         onOpenReport={() => setIsReportModalOpen(true)}
+        onOpenCamera={() => setIsCameraOpen(true)}
         totalVehiclesCount={vehicles.length}
       />
 
@@ -88,6 +91,13 @@ export default function App() {
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         activeVehicle={activeVehicle}
+      />
+
+      {/* Live Phone / Webcam Real-Time ML Scanner Modal */}
+      <CameraScannerModal 
+        isOpen={isCameraOpen}
+        onClose={() => setIsCameraOpen(false)}
+        onVehicleCreated={handleCustomVehicleReady}
       />
     </div>
   );

@@ -10,7 +10,8 @@ import {
   Printer, 
   Activity,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Camera
 } from 'lucide-react';
 import { soundEffects } from '../utils/audio';
 
@@ -20,6 +21,7 @@ export default function Navbar({
   isMuted, 
   setIsMuted, 
   onOpenReport,
+  onOpenCamera,
   totalVehiclesCount = 4
 }) {
   const handleTabClick = (tabId) => {
@@ -172,6 +174,25 @@ export default function Navbar({
                 <span style={{ fontSize: '0.8rem' }}>Sound FX</span>
               </>
             )}
+          </button>
+
+          <button 
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              soundEffects.playClick();
+              onOpenCamera();
+            }}
+            title="Open Live Phone / Laptop Camera Vehicle Scanner"
+            style={{ 
+              padding: '8px 14px',
+              background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+              color: '#fff',
+              boxShadow: '0 0 16px rgba(16, 185, 129, 0.4)'
+            }}
+          >
+            <Camera size={17} />
+            <span>Live Camera</span>
           </button>
 
           <button 

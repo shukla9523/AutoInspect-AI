@@ -7,10 +7,12 @@ import {
   Cpu, 
   AlertTriangle, 
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Camera
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundEffects } from '../utils/audio';
+import { executeMachineLearningInspection } from '../utils/mlEngine';
 
 export default function CustomScanUploader({ onCustomVehicleReady }) {
   const [selectedImage, setSelectedImage] = useState('./samples/front_bumper.jpg');
@@ -21,8 +23,10 @@ export default function CustomScanUploader({ onCustomVehicleReady }) {
   const [currentStep, setCurrentStep] = useState(0); // 0 = idle, 1, 2, 3, 4 = done
   const [isDone, setIsDone] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [mlData, setMlData] = useState(null);
 
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   const samplePresets = [
     { name: 'Front Bumper Abrasion', src: './samples/front_bumper.jpg', model: '2023 Subaru WRX Limited' },
@@ -39,6 +43,7 @@ export default function CustomScanUploader({ onCustomVehicleReady }) {
       setImageName(file.name);
       setIsDone(false);
       setCurrentStep(0);
+      setMlData(null);
       soundEffects.playClick();
     }
   };
@@ -62,6 +67,7 @@ export default function CustomScanUploader({ onCustomVehicleReady }) {
       setImageName(file.name);
       setIsDone(false);
       setCurrentStep(0);
+      setMlData(null);
       soundEffects.playClick();
     }
   };
@@ -73,70 +79,93 @@ export default function CustomScanUploader({ onCustomVehicleReady }) {
     setVehicleMakeModel(preset.model);
     setIsDone(false);
     setCurrentStep(0);
+    setMlData(null);
   };
 
-  const handleStartAnalysis = () => {
+  const handleStartAnalysis = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
     setIsDone(false);
     setCurrentStep(1);
     soundEffects.playScanSweep();
 
-    // Step 2
-    setTimeout(() => {
-      setCurrentStep(2);
-      soundEffects.playDefectFound('medium');
-    }, 900);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
 
-    // Step 3
-    setTimeout(() => {
-      setCurrentStep(3);
-      soundEffects.playDefectFound('high');
-    }, 1800);
+    const onImageLoaded = async () => {
+      // Step 2: YOLO & Object localization
+      setTimeout(() => {
+        setCurrentStep(2);
+        soundEffects.playDefectFound('medium');
+      }, 700);
 
-    // Step 4
-    setTimeout(() => {
-      setCurrentStep(4);
-      setIsProcessing(false);
-      setIsDone(true);
-      soundEffects.playScanComplete();
+      // Step 3: Computer Vision pixel & gradient calculus
+      setTimeout(() => {
+        setCurrentStep(3);
+        soundEffects.playDefectFound('high');
+      }, 1400);
 
-      try {
-        confetti({
-          particleCount: 70,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#00f2fe', '#38bdf8', '#10b981']
-        });
-      } catch (err) {
-        console.warn(err);
-      }
-    }, 2800);
+      const inspection = await executeMachineLearningInspection(img, vehicleMakeModel);
+      setMlData(inspection);
+
+      // Step 4: Cost estimation completion
+      setTimeout(() => {
+        setCurrentStep(4);
+        setIsProcessing(false);
+        setIsDone(true);
+        soundEffects.playScanComplete();
+
+        try {
+          confetti({
+            particleCount: 70,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: ['#00f2fe', '#38bdf8', '#10b981']
+          });
+        } catch (err) {
+          console.warn(err);
+        }
+      }, 2100);
+    };
+
+    img.onload = onImageLoaded;
+    img.onerror = () => {
+      // Fallback if crossOrigin fails on some browsers
+      onImageLoaded();
+    };
+    img.src = selectedImage;
   };
 
   const handleLaunchInScanner = () => {
     soundEffects.playClick();
+
+    const finalDefects = mlData?.defects || [];
+    const finalScore = mlData?.overallScore || 78;
+    const finalStatus = mlData?.status || 'Fair - Surface Defects Identified';
+    const finalSafety = mlData?.safetyRating || 'Drivable with Service Advisory';
+    const finalCost = mlData?.totalEstimatedRepair || 680.00;
+
     // Build custom vehicle profile
     const customVehicle = {
       id: `custom-${Date.now()}`,
       name: vehicleMakeModel || 'Custom Inspected Vehicle',
       vin: vehicleVIN || 'CUSTOM-VIN-' + Math.floor(Math.random() * 900000 + 100000),
-      plate: 'AI-TEST',
+      plate: 'AI-ML',
       mileage: '12,500 mi',
       color: 'Custom Finish',
       engine: '2.0L Turbo',
       transmission: 'Automatic',
       image: selectedImage,
       inspectionAngle: 'Custom Camera Angle',
-      overallScore: 72,
-      status: 'Fair - Surface Defects Identified',
-      safetyRating: 'Drivable with Service Advisory',
-      totalEstimatedRepair: 890.00,
+      overallScore: finalScore,
+      status: finalStatus,
+      safetyRating: finalSafety,
+      totalEstimatedRepair: finalCost,
       zones: {
-        frontBumper: { health: 65, status: 'damaged', defects: 2 },
-        hood: { health: 95, status: 'good', defects: 0 },
+        frontBumper: { health: finalScore, status: finalScore < 70 ? 'damaged' : 'good', defects: finalDefects.length },
+        hood: { health: 100, status: 'pristine', defects: 0 },
         windshield: { health: 100, status: 'pristine', defects: 0 },
-        frontRightFender: { health: 85, status: 'minor_damage', defects: 1 },
+        frontRightFender: { health: 90, status: 'good', defects: 0 },
         frontLeftFender: { health: 100, status: 'pristine', defects: 0 },
         doorsLeft: { health: 100, status: 'pristine', defects: 0 },
         doorsRight: { health: 100, status: 'pristine', defects: 0 },
@@ -146,46 +175,7 @@ export default function CustomScanUploader({ onCustomVehicleReady }) {
         trunk: { health: 100, status: 'pristine', defects: 0 },
         rearBumper: { health: 100, status: 'pristine', defects: 0 },
       },
-      defects: [
-        {
-          id: 'custom-def-1',
-          title: 'Surface Paint Scuff & Clearcoat Abrasion',
-          category: 'Paint Damage',
-          severity: 'medium',
-          confidence: 0.968,
-          box: { x: 40, y: 45, w: 28, h: 25 },
-          dimensions: { length: '28 cm', area: '290 cm²', depth: '0.8 mm' },
-          layerMask: 'polygon(42% 46%, 66% 46%, 67% 68%, 41% 69%)',
-          repairAction: 'Featheredge sanding, primer surfacer, color blend & clear coat',
-          partNumber: 'N/A',
-          laborType: 'Refinish & Paint',
-          laborHours: 2.8,
-          partsCost: 0,
-          paintCost: 160.00,
-          laborCost: 280.00,
-          totalCost: 440.00,
-          urgency: 'Moderate - Prevent oxidation',
-        },
-        {
-          id: 'custom-def-2',
-          title: 'Trim Bracket Impact Crease',
-          category: 'Panel Deformation',
-          severity: 'high',
-          confidence: 0.942,
-          box: { x: 52, y: 58, w: 18, h: 18 },
-          dimensions: { length: '14 cm', area: '120 cm²', depth: '1.8 mm crease' },
-          layerMask: 'polygon(53% 59%, 69% 59%, 68% 75%, 53% 74%)',
-          repairAction: 'PDR lever access or panel alignment fixture adjustment',
-          partNumber: '71108-T20-A00',
-          laborType: 'Body Specialist',
-          laborHours: 2.0,
-          partsCost: 150.00,
-          paintCost: 0,
-          laborCost: 300.00,
-          totalCost: 450.00,
-          urgency: 'High - Structural alignment check',
-        }
-      ]
+      defects: finalDefects
     };
 
     onCustomVehicleReady(customVehicle);
@@ -247,15 +237,45 @@ export default function CustomScanUploader({ onCustomVehicleReady }) {
             />
 
             <UploadCloud size={44} color="var(--accent-cyan)" style={{ margin: '0 auto 12px' }} />
+            <input 
+              ref={cameraInputRef}
+              type="file" 
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              style={{ display: 'none' }} 
+            />
+
             <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '6px' }}>
-              Drag &amp; drop vehicle image here
+              Drag &amp; drop vehicle image or take a photo
             </h4>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              Supports high-resolution JPEG, PNG, WEBP files up to 25MB
+              Supports phone camera capture, JPEG, PNG, WEBP files
             </p>
-            <span className="btn-secondary" style={{ display: 'inline-flex' }}>
-              Browse Files from Computer
-            </span>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <span className="btn-secondary" style={{ display: 'inline-flex' }}>
+                Browse Files
+              </span>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  cameraInputRef.current?.click();
+                }}
+                style={{ 
+                  display: 'inline-flex', 
+                  padding: '7px 16px', 
+                  fontSize: '0.82rem',
+                  background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                  color: '#fff',
+                  boxShadow: '0 0 14px rgba(16, 185, 129, 0.4)'
+                }}
+              >
+                <Camera size={15} />
+                <span>Snap Live Photo</span>
+              </button>
+            </div>
           </div>
 
           {/* Image Preview */}
